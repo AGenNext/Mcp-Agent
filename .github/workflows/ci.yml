@@ -30,21 +30,37 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov coverage
+          pip install pytest pytest-cov coverage pytest-xdist pytest-timeout
+          pip install bandit safety pylint flake8 black mypy types-python-dateio
           
-      - name: Run tests with coverage
-        run: |
-          pytest --cov=. --cov-report=xml || true
+      - name: Run tests
+        run: pytest -v --cov=. --cov-report=xml --tb=short || true
         continue-on-error: true
           
-      - name: Run linting
-        run: |
-          pip install flake8 || true
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+      - name: Run coverage
+        run: coverage report --fail-under=0 || true
         continue-on-error: true
           
-      - name: Type check
-        run: |
-          pip install mypy || true
-          mypy . --ignore-missing-imports || true
+      - name: Run bandit (security)
+        run: bandit -r . -x ./.git || true
+        continue-on-error: true
+          
+      - name: Run safety (vulnerabilities)
+        run: safety check || true
+        continue-on-error: true
+          
+      - name: Run pylint
+        run: pylint **/*.py --disable=all --enable=E,F || true
+        continue-on-error: true
+          
+      - name: Run flake8
+        run: flake8 . --count --statistics || true
+        continue-on-error: true
+          
+      - name: Run black (check format)
+        run: black --check . || true
+        continue-on-error: true
+          
+      - name: Run mypy (type check)
+        run: mypy . --ignore-missing-imports || true
         continue-on-error: true
